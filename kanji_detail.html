@@ -878,6 +878,60 @@
                 height: auto !important;
             }
         }
+        /* 그리드 레이아웃으로 변경 */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toggle-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            grid-column: 1;
+        }
+
+        .toggle-btn:hover {
+            background-color: #45a049;
+        }
+
+        .skip-known-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+            grid-column: 2;
+        }
+
+        .skip-known-container input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 모바일 화면에서도 그리드 유지 */
+        @media (max-width: 600px) {
+            .toggle-grid {
+                grid-template-columns: 1fr auto;
+            }
+            
+            .toggle-btn {
+                padding: 10px;
+            }
+            
+            .skip-known-container {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -914,7 +968,13 @@
                         <button class="nav-button side-button" id="nextButton">→</button>
                     </div>
                     
-                    <button class="toggle-btn" id="toggleBtn">모든 정보 보기</button>
+                    <div class="toggle-grid">
+                        <button class="toggle-btn" id="toggleBtn">모든 정보 보기</button>
+                        <div class="skip-known-container">
+                            <input type="checkbox" id="skipKnownCheck" />
+                            <label for="skipKnownCheck">알고 있는 한자 건너뛰기</label>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="details-container" id="detailsContainer">
@@ -1063,6 +1123,14 @@
             // 저장하고 UI 업데이트
             saveKnownKanji();
             updateKnownStatus();
+            
+            // 체크박스가 체크되어 있고 현재 한자가 '알고 있음'으로 변경된 경우 다음 모르는 한자로 자동 이동
+            const skipKnown = document.getElementById('skipKnownCheck').checked;
+            if (skipKnown && knownKanji[kanji]) {
+                setTimeout(() => {
+                    navigateToNextUnknown();
+                }, 300);
+            }
         }
         
         // 알고 있음/모름 상태 UI 업데이트
@@ -1108,6 +1176,7 @@
         function setupNavigationButtons() {
             const prevButton = document.getElementById('prevButton');
             const nextButton = document.getElementById('nextButton');
+            const skipKnownCheck = document.getElementById('skipKnownCheck');
             
             // 이전 버튼 이벤트
             prevButton.addEventListener('click', navigateToPrevious);
@@ -1116,22 +1185,46 @@
             // 다음 버튼 이벤트
             nextButton.addEventListener('click', navigateToNext);
             nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
+            
+            // 체크박스 상태 로드
+            const skipKnownState = localStorage.getItem('skipKnown');
+            skipKnownCheck.checked = skipKnownState === 'true';
+            
+            // 체크박스 이벤트
+            skipKnownCheck.addEventListener('change', function() {
+                localStorage.setItem('skipKnown', this.checked);
+                
+                // 체크박스 상태가 변경되었을 때 다음 버튼 상태 업데이트
+                updateNextButtonState();
+            });
+            
+            // 초기 버튼 상태 설정
+            updateNextButtonState();
         }
         
-        // 이전 한자로 이동
-        function navigateToPrevious() {
-            if (currentKanjiIndex > 0) {
-                currentKanjiIndex--;
-                updateKanjiDisplay();
+        // 다음 버튼 상태 업데이트
+        function updateNextButtonState() {
+            const nextButton = document.getElementById('nextButton');
+            const skipKnown = document.getElementById('skipKnownCheck').checked;
+            
+            if (skipKnown) {
+                // 건너뛰기 모드일 때는 마지막 한자가 아니고 다음 모르는 한자가 있을 때만 활성화
+                nextButton.disabled = !hasNextUnknownKanji();
+            } else {
+                // 일반 모드일 때는 마지막 한자가 아닐 때만 활성화
+                nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
             }
         }
         
-        // 다음 한자로 이동
-        function navigateToNext() {
-            if (currentKanjiIndex < allKanjiData.length - 1) {
-                currentKanjiIndex++;
-                updateKanjiDisplay();
+        // 다음 모르는 한자가 있는지 확인
+        function hasNextUnknownKanji() {
+            for (let i = currentKanjiIndex + 1; i < allKanjiData.length; i++) {
+                const kanji = allKanjiData[i].kanji;
+                if (!knownKanji[kanji]) {
+                    return true;
+                }
             }
+            return false;
         }
         
         // 화면 업데이트 및 URL 변경
@@ -1143,11 +1236,10 @@
             displayKanjiDetail();
             
             // 버튼 상태 업데이트
-            const prevButton = document.getElementById('prevButton');
-            const nextButton = document.getElementById('nextButton');
+            updateNextButtonState();
             
+            const prevButton = document.getElementById('prevButton');
             prevButton.disabled = currentKanjiIndex <= 0;
-            nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
             
             // 정보 표시 상태 처리
             const detailsContainer = document.getElementById('detailsContainer');
@@ -1300,6 +1392,53 @@
         function showNotFoundMessage() {
             document.getElementById('kanjiCard').style.display = 'none';
             document.getElementById('notFoundMessage').style.display = 'block';
+        }
+
+        // 이전 한자로 이동
+        function navigateToPrevious() {
+            if (currentKanjiIndex > 0) {
+                currentKanjiIndex--;
+                updateKanjiDisplay();
+            }
+        }
+        
+        // 다음 한자로 이동
+        function navigateToNext() {
+            const skipKnown = document.getElementById('skipKnownCheck').checked;
+            
+            if (skipKnown) {
+                navigateToNextUnknown();
+            } else {
+                // 기존 다음 버튼 로직
+                if (currentKanjiIndex < allKanjiData.length - 1) {
+                    currentKanjiIndex++;
+                    updateKanjiDisplay();
+                }
+            }
+        }
+        
+        // 다음 모르는 한자로 이동
+        function navigateToNextUnknown() {
+            let nextIndex = currentKanjiIndex + 1;
+            
+            // 다음 모르는 한자 찾기
+            while (nextIndex < allKanjiData.length) {
+                const kanji = allKanjiData[nextIndex].kanji;
+                
+                // 모르는 한자인 경우 (knownKanji 객체에 없거나 false인 경우)
+                if (!knownKanji[kanji]) {
+                    currentKanjiIndex = nextIndex;
+                    updateKanjiDisplay();
+                    return;
+                }
+                
+                nextIndex++;
+            }
+            
+            // 모든 한자를 다 알고 있는 경우
+            if (nextIndex >= allKanjiData.length) {
+                alert('더 이상 모르는 한자가 없습니다!');
+            }
         }
     </script>
 </body>
