@@ -1049,6 +1049,15 @@
                 delete knownKanji[kanji];
             } else {
                 knownKanji[kanji] = true;
+                
+                // "알아요"로 표시했을 때만 다음 한자로 자동 이동
+                // 마지막 한자가 아닌 경우에만 다음으로 이동
+                if (currentKanjiIndex < allKanjiData.length - 1) {
+                    // 약간의 지연 후 다음 한자로 이동 (시각적 피드백을 위함)
+                    setTimeout(() => {
+                        navigateToNext();
+                    }, 300);
+                }
             }
             
             // 저장하고 UI 업데이트
