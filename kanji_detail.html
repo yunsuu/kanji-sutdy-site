@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한자 상세 정보</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+        }
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            min-height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .back-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin-right: 15px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .back-button:hover {
+            background-color: #0b7dda;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+            flex-grow: 1;
+            text-align: center;
+        }
+        #kanjiCardContainer {
+            /* 원래는 특별한 스타일이 없었음 */
+        }
+        .kanji-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-bottom: 30px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        .fixed-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .card-content {
+            flex: 0 0 auto;
+            display: block;
+            min-height: 200px;
+            margin-top: 20px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        .button-area {
+            flex: 0 0 auto;
+            padding-top: 0;
+            margin-top: auto;
+        }
+        .kanji-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            gap: 10px;
+            position: relative;
+        }
+        .kanji-char {
+            font-size: 100px;
+            text-align: center;
+            margin: 15px auto 15px auto;
+            position: relative;
+            z-index: 1;
+            height: 120px;
+            line-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .kanji-basic-info {
+            width: 100%;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .kanji-meaning {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .kanji-header .reading-info {
+            margin-top: 8px;
+            display: flex;
+            font-size: 16px;
+        }
+        .kanji-header .reading-type {
+            font-weight: bold;
+            min-width: 50px;
+            color: #555;
+        }
+        .kanji-header .reading-value {
+            flex-grow: 1;
+        }
+        .jlpt-level {
+            display: inline-block;
+            background-color: #2196F3;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .info-section {
+            margin-bottom: 25px;
+            background-color: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .section-title {
+            color: #555;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .toggle-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px 0 15px 0;
+            width: 100%;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .toggle-btn:hover {
+            background-color: #45a049;
+        }
+        .details-container {
+            flex: 1 0 auto;
+            overflow: auto;
+            height: auto;
+        }
+        .details-container.hidden {
+            display: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .reading-info {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .reading-type {
+            font-weight: bold;
+            min-width: 80px;
+        }
+        .reading-value {
+            flex-grow: 1;
+        }
+        .examples {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .examples li {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .not-found {
+            text-align: center;
+            padding: 50px;
+            color: #777;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 8px;
+                max-width: 100%;
+                min-height: 100%;
+                margin: 0;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .header {
+                margin-bottom: 10px;
+            }
+            
+            #kanjiCardContainer {
+                flex: 1 0 auto;
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 20px;
+            }
+            
+            .kanji-card {
+                flex: 1 0 auto;
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 0;
+                min-height: auto;
+                padding: 15px 10px;
+            }
+            
+            .details-container {
+                height: auto !important;
+                max-height: none !important;
+                overflow-y: auto;
+            }
+            
+            .details-container.show {
+                display: block;
+                padding-bottom: 50px;
+            }
+            
+            .fixed-layout {
+                height: auto;
+                flex: 1 0 auto;
+            }
+            
+            .card-content {
+                margin-bottom: 10px;
+            }
+            
+            /* 모바일에서 세로 공간 활용 최적화 */
+            .kanji-card {
+                padding: 12px 10px;
+                margin-bottom: 15px;
+                border-radius: 8px;
+                min-height: 320px;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* 자동 확장 높이 설정으로 하단 공간 채우기 */
+            #kanjiCardContainer {
+                min-height: calc(100vh - 90px);
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* 푸터 영역이 있을 경우 고려 */
+            #detailsContainer {
+                flex: 1;
+            }
+            
+            /* 컨텐츠 영역 최적화 */
+            .card-content {
+                min-height: 150px;
+                margin-top: 15px;
+                margin-bottom: 15px;
+                display: block;
+            }
+            
+            /* 하단 버튼 영역 고정 */
+            .button-area {
+                position: relative;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }
+            
+            .details-container {
+                height: 250px; /* 모바일에서 고정 높이 */
+                min-height: 0;
+                max-height: none;
+                transition: max-height 0.3s ease;
+            }
+            
+            .nav-buttons {
+                margin: 0 0 12px 0;
+            }
+            
+            .kanji-header {
+                flex-direction: column;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                border-bottom: none;
+            }
+            
+            .kanji-meaning-top {
+                font-size: 18px;
+                margin-bottom: 5px;
+                font-weight: bold;
+                color: #333;
+                text-align: center;
+            }
+            
+            .kanji-char {
+                font-size: 90px;
+                margin: 25px auto 15px auto;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 100px;
+                height: 100px;
+            }
+            
+            .jlpt-status-container {
+                margin-top: 0;
+                justify-content: center;
+            }
+            
+            .reading-header {
+                flex-direction: row;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            
+            .jlpt-badge {
+                margin-left: 10px;
+                padding: 2px 6px;
+                font-size: 11px;
+            }
+        }
+        /* 한자 구성 섹션 스타일 개선 */
+        .shape-explanation {
+            line-height: 1.8;
+            font-size: 16px;
+            padding: 20px;
+            background-color: #fafafa;
+            border-radius: 12px;
+            border-left: 4px solid #4CAF50;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            color: #333;
+            letter-spacing: 0.3px;
+        }
+        
+        .shape-explanation p {
+            margin: 0;
+            position: relative;
+            padding-left: 10px;
+            padding-right: 5px;
+            text-align: justify;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+            text-indent: 0.5em;
+        }
+        
+        /* 한자 구성 섹션 제목 스타일 */
+        #shapeSection .section-title {
+            display: flex;
+            align-items: center;
+        }
+        
+        #shapeSection .section-title::before {
+            content: "漢";
+            font-size: 16px;
+            margin-right: 8px;
+            background-color: #4CAF50;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .meaning-block {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .meaning-block:last-child {
+            border-bottom: none;
+            margin-bottom: 10px;
+            padding-bottom: 0;
+        }
+        
+        .component {
+            font-weight: bold;
+            color: #2196F3;
+            background-color: #e3f2fd;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin: 0 2px;
+            display: inline-block;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            font-size: 16px;
+            vertical-align: middle;
+        }
+        
+        .shape-part {
+            display: inline-flex;
+            align-items: center;
+            margin: 5px 10px;
+        }
+        
+        .shape-equals {
+            margin: 0 12px;
+            color: #555;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .shape-plus {
+            margin: 0 12px;
+            color: #555;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        /* 네비게이션 버튼 스타일 개선 */
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 0 15px 0;
+            gap: 12px;
+        }
+        
+        .nav-button {
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-button:hover {
+            background-color: #F57C00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .nav-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .nav-button.side-button {
+            width: 80px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .nav-button:disabled {
+            background-color: #ddd;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* 알고 있음/모름 버튼 스타일 */
+        .toggle-known-btn {
+            flex-grow: 1;
+            color: white;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .toggle-known-btn {
+            background-color: #4CAF50; /* 알아요 버튼: 초록색 */
+        }
+        
+        .toggle-known-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .toggle-known-btn.known {
+            background-color: #E53935; /* 몰라요 버튼: 빨간색 */
+        }
+        
+        .toggle-known-btn.known:hover {
+            background-color: #D32F2F;
+        }
+        
+        @media (max-width: 600px) {
+            .nav-button.side-button {
+                width: 50px;
+                font-size: 18px;
+                padding: 8px 0;
+            }
+            
+            .toggle-known-btn {
+                font-size: 14px;
+                padding: 8px 0;
+            }
+            
+            .nav-buttons {
+                gap: 8px;
+            }
+        }
+        /* 알고 있음 상태 표시 스타일 */
+        .known-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background-color: #FF9800;
+            color: white;
+            font-weight: bold;
+        }
+        .known-status:before {
+            content: "알고 있음";
+        }
+        
+        /* JLPT 레벨 배지 스타일 개선 */
+        .jlpt-badge {
+            display: inline-block;
+            background-color: #2196F3;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* 레벨에 따른 색상 */
+        .jlpt-n5 { background-color: #4CAF50; }
+        .jlpt-n4 { background-color: #8BC34A; }
+        .jlpt-n3 { background-color: #FFC107; }
+        .jlpt-n2 { background-color: #FF9800; }
+        .jlpt-n1 { background-color: #F44336; }
+
+        /* 정보 배지 컨테이너 */
+        .jlpt-status-container {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+        /* 단어 예시 스타일 */
+        .word-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .word-item {
+            background-color: #f0f8ff;
+            border-radius: 4px;
+            padding: 10px;
+            border-left: 3px solid #5d9cec;
+        }
+        .word {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .word-meaning {
+            font-size: 14px;
+            color: #666;
+        }
+        .word-reading {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+        }
+        /* 로딩 스타일 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .loading:after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ddd;
+            border-top-color: #333;
+            border-radius: 50%;
+            animation: loading 1s linear infinite;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        @keyframes loading {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* 에러 메시지 스타일 */
+        .error-message {
+            color: #d9534f;
+            padding: 10px;
+            background-color: #f9f2f2;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        /* 괄호 스타일 */
+        .bracket {
+            color: #666;
+            font-weight: normal;
+        }
+        /* 헤더와 컴팩트 정보 스타일 */
+        .compact-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        /* 모바일 정보 숨김 관련 스타일 */
+        @media (max-width: 600px) {
+            .mobile-hide-before-toggle {
+                display: none;
+            }
+            
+            .mobile-hide-before-toggle.show {
+                display: flex;
+            }
+        }
+        
+        .hide-mobile {
+            display: block;
+        }
+        /* 읽기 정보 스타일 개선 */
+        .reading-section {
+            margin-bottom: 15px;
+        }
+        
+        .reading-info {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        
+        .reading-type {
+            font-weight: bold;
+            min-width: 60px;
+            color: #555;
+        }
+        
+        .reading-value {
+            flex-grow: 1;
+        }
+        
+        /* JLPT 레벨과 상태 표시 스타일 */
+        #jlptLevelContainer2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        /* 모바일 레이아웃에서 기본적으로 모든 섹션 숨김 처리 */
+        @media (max-width: 600px) {
+            .info-section {
+                display: none !important;
+            }
+            
+            .info-section.show {
+                display: block !important;
+            }
+        }
+        
+        /* 토글 버튼 클릭시 정보 표시 */
+        @media (max-width: 600px) {
+            #detailsContainer.show .info-section {
+                display: block !important;
+            }
+        }
+        /* 한자 헤더 레이아웃 수정 */
+        .kanji-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            gap: 10px;
+        }
+        
+        /* 한자 의미를 한자 위에 표시 */
+        .kanji-meaning-top {
+            font-size: 20px;
+            margin-bottom: 0;
+            color: #333;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* 읽기 정보 영역에 JLPT 레벨 추가 */
+        .reading-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .reading-header h3 {
+            margin: 0;
+        }
+        
+        @media (max-width: 600px) {
+            .kanji-meaning-top {
+                font-size: 18px;
+                margin-bottom: 5px;
+            }
+            
+            .reading-header {
+                flex-direction: row;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+        }
+        /* 모바일 스타일 조정 - 추가 */
+        @media (max-width: 600px) {
+            .reading-header {
+                flex-direction: row;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+            
+            .jlpt-badge {
+                margin-left: 10px;
+                padding: 2px 6px;
+                font-size: 11px;
+            }
+        }
+        /* 모바일에서 한자 의미 숨김 처리 */
+        @media (max-width: 600px) {
+            .meaning-container {
+                display: flex;
+                height: 30px;
+                visibility: hidden;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+            }
+            
+            #detailsContainer.show ~ .meaning-container,
+            .meaning-container.show {
+                visibility: visible;
+                margin-bottom: 10px;
+            }
+        }
+        /* 한자 의미 컨테이너 스타일 */
+        .meaning-container {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 5px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+        
+        /* 한자 의미를 한자 위에 표시 */
+        .kanji-meaning-top {
+            font-size: 20px;
+            margin-bottom: 0;
+            color: #333;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        /* 모바일에서 한자 의미 숨김/표시 처리 */
+        @media (max-width: 600px) {
+            .meaning-container {
+                display: flex;
+                height: 30px;
+                visibility: hidden;
+            }
+            
+            .meaning-container.show {
+                visibility: visible;
+                margin-bottom: 10px;
+            }
+            
+            .kanji-meaning-top {
+                font-size: 18px;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+        }
+        /* 모바일에서 details-container 숨길 때 레이아웃 유지 */
+        @media (max-width: 600px) {
+            .details-container {
+                min-height: 0;
+                max-height: none;
+                transition: max-height 0.3s ease;
+            }
+        }
+        /* 모바일 레이아웃 최적화 추가 */
+        @media (max-width: 600px) {
+            /* 세로 스크롤 최적화 */
+            body {
+                overflow-x: hidden;
+                overflow-y: auto;
+                height: auto;
+                min-height: 100%;
+            }
+
+            /* 컨테이너 스크롤 설정 */
+            #kanjiCardContainer, .kanji-card {
+                overflow: visible;
+            }
+
+            /* 정보 섹션 표시 설정 */
+            .info-section {
+                display: none;
+            }
+
+            #detailsContainer.show .info-section {
+                display: block !important;
+            }
+
+            .details-container {
+                overflow-y: visible;
+            }
+
+            .details-container.show {
+                overflow-y: visible;
+                height: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <a href="index.html" class="back-button">← 목록</a>
+            <h1>한자 상세 정보</h1>
+        </div>
+    </div>
+    
+    <div id="kanjiCardContainer">
+        <div class="not-found" id="notFoundMessage" style="display: none;">
+            <h2>한자 정보를 찾을 수 없습니다</h2>
+            <p>잘못된 접근이거나 데이터가 없습니다.</p>
+            <a href="index.html" class="back-button">목록으로 돌아가기</a>
+        </div>
+        
+        <div class="kanji-card" id="kanjiCard">
+            <div class="fixed-layout">
+                <div class="card-content">
+                    <div class="kanji-header">
+                        <div class="meaning-container" id="meaningContainer">
+                            <div class="kanji-meaning-top" id="kanjiMeaningTop"></div>
+                        </div>
+                        <div class="kanji-char" id="kanjiChar"></div>
+                    </div>
+                </div>
+                
+                <div class="button-area">
+                    <!-- 이전/다음 버튼 -->
+                    <div class="nav-buttons">
+                        <button class="nav-button side-button" id="prevButton">←</button>
+                        <button class="nav-button toggle-known-btn" id="toggleKnownBtn">알아요</button>
+                        <button class="nav-button side-button" id="nextButton">→</button>
+                    </div>
+                    
+                    <button class="toggle-btn" id="toggleBtn">모든 정보 보기</button>
+                </div>
+                
+                <div class="details-container" id="detailsContainer">
+                    <div class="info-section" id="shapeSection">
+                        <h3 class="section-title">한자 구성</h3>
+                        <div class="shape-explanation" id="shapeExplanation"></div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <div class="reading-header">
+                            <h3 class="section-title">읽기</h3>
+                            <div id="jlptLevelContainer" class="jlpt-badge"></div>
+                        </div>
+                        <div class="reading-section">
+                            <div class="reading-info">
+                                <div class="reading-type">음독:</div>
+                                <div class="reading-value" id="onyomi"></div>
+                            </div>
+                            <div class="reading-info">
+                                <div class="reading-type">훈독:</div>
+                                <div class="reading-value" id="kunyomi"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-section" id="wordExamplesSection">
+                        <h3 class="section-title">자주 쓰이는 단어</h3>
+                        <div class="word-examples" id="wordExamples">
+                            <div style="text-align: center; padding: 20px; color: #777;">
+                                준비 중입니다. 나중에 추가될 예정입니다.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL에서 한자 ID 파라미터 가져오기
+            const urlParams = new URLSearchParams(window.location.search);
+            const kanjiId = urlParams.get('id');
+            
+            // 알고 있는 한자 목록 로드
+            loadKnownKanji();
+            
+            // 데이터 가져오기
+            loadKanjiData(kanjiId);
+            
+            // 토글 버튼 이벤트 리스너
+            const toggleBtn = document.getElementById('toggleBtn');
+            const detailsContainer = document.getElementById('detailsContainer');
+            
+            // 모바일 여부 확인
+            const isMobile = window.innerWidth <= 600;
+            
+            // 모바일에서는 기본적으로 모든 정보 숨김
+            if (isMobile) {
+                // 모바일에서는 기본적으로 내용 숨김
+                const sections = detailsContainer.querySelectorAll('.info-section');
+                sections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+                // 한자 의미도 숨김
+                document.getElementById('meaningContainer').classList.remove('show');
+                toggleBtn.textContent = '모든 정보 보기';
+            }
+            
+            toggleBtn.addEventListener('click', function() {
+                if (isMobile) {
+                    // 모바일에서는 모든 정보 표시/숨김 토글
+                    if (detailsContainer.classList.contains('show')) {
+                        // 정보 숨기기
+                        detailsContainer.classList.remove('show');
+                        document.getElementById('meaningContainer').classList.remove('show');
+                        toggleBtn.textContent = '모든 정보 보기';
+                    } else {
+                        // 정보 표시하기
+                        detailsContainer.classList.add('show');
+                        document.getElementById('meaningContainer').classList.add('show');
+                        toggleBtn.textContent = '정보 숨기기';
+                    }
+                } else {
+                    // 데스크톱에서는 기존 방식대로 동작
+                    if (detailsContainer.classList.contains('hidden')) {
+                        detailsContainer.classList.remove('hidden');
+                        toggleBtn.textContent = '정보 숨기기';
+                    } else {
+                        detailsContainer.classList.add('hidden');
+                        toggleBtn.textContent = '정보 보기';
+                    }
+                }
+            });
+            
+            // 알고 있음/모름 토글 버튼 이벤트 리스너
+            const toggleKnownBtn = document.getElementById('toggleKnownBtn');
+            toggleKnownBtn.addEventListener('click', toggleCurrentKanjiKnown);
+            
+            // 화면 크기 변경 시 UI 업데이트
+            window.addEventListener('resize', function() {
+                const newIsMobile = window.innerWidth <= 600;
+                if (newIsMobile !== isMobile) {
+                    location.reload(); // 모바일 <-> 데스크톱 전환 시 새로고침
+                }
+            });
+        });
+        
+        // 전역 변수로 현재 한자 인덱스와 전체 데이터 저장
+        let currentKanjiIndex = 0;
+        let allKanjiData = [];
+        let knownKanji = {}; // 알고 있는 한자 목록
+        
+        // 알고 있는 한자 목록 로드
+        function loadKnownKanji() {
+            const storedKnownKanji = localStorage.getItem('knownKanji');
+            if (storedKnownKanji) {
+                knownKanji = JSON.parse(storedKnownKanji);
+            }
+        }
+        
+        // 알고 있는 한자 목록 저장
+        function saveKnownKanji() {
+            localStorage.setItem('knownKanji', JSON.stringify(knownKanji));
+        }
+        
+        // 현재 한자의 알고 있음/모름 상태 토글
+        function toggleCurrentKanjiKnown() {
+            const kanji = allKanjiData[currentKanjiIndex].kanji;
+            
+            if (knownKanji[kanji]) {
+                delete knownKanji[kanji];
+            } else {
+                knownKanji[kanji] = true;
+            }
+            
+            // 저장하고 UI 업데이트
+            saveKnownKanji();
+            updateKnownStatus();
+        }
+        
+        // 알고 있음/모름 상태 UI 업데이트
+        function updateKnownStatus() {
+            const kanji = allKanjiData[currentKanjiIndex].kanji;
+            const toggleKnownBtn = document.getElementById('toggleKnownBtn');
+            
+            if (knownKanji[kanji]) {
+                toggleKnownBtn.textContent = "몰라요";
+                toggleKnownBtn.classList.add('known');
+            } else {
+                toggleKnownBtn.textContent = "알아요";
+                toggleKnownBtn.classList.remove('known');
+            }
+        }
+        
+        // 한자 데이터 불러오기 및 표시
+        async function loadKanjiData(kanjiId) {
+            // 세션 스토리지에서 데이터 가져오기 시도
+            const storedData = sessionStorage.getItem('kanjiData');
+            
+            if (storedData) {
+                allKanjiData = JSON.parse(storedData);
+                currentKanjiIndex = parseInt(kanjiId, 10);
+                displayKanjiDetail();
+                setupNavigationButtons();
+            } else {
+                // 세션 스토리지에 데이터가 없으면 직접 가져오기
+                try {
+                    const response = await fetch('https://raw.githubusercontent.com/yunsuu/-data/refs/heads/main/kanji_data_all.json');
+                    allKanjiData = await response.json();
+                    currentKanjiIndex = parseInt(kanjiId, 10);
+                    displayKanjiDetail();
+                    setupNavigationButtons();
+                } catch (error) {
+                    console.error('데이터를 불러오는 중 오류가 발생했습니다:', error);
+                    showNotFoundMessage();
+                }
+            }
+        }
+        
+        // 이전/다음 버튼 이벤트 설정
+        function setupNavigationButtons() {
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            
+            // 이전 버튼 이벤트
+            prevButton.addEventListener('click', navigateToPrevious);
+            prevButton.disabled = currentKanjiIndex <= 0;
+            
+            // 다음 버튼 이벤트
+            nextButton.addEventListener('click', navigateToNext);
+            nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
+        }
+        
+        // 이전 한자로 이동
+        function navigateToPrevious() {
+            if (currentKanjiIndex > 0) {
+                currentKanjiIndex--;
+                updateKanjiDisplay();
+            }
+        }
+        
+        // 다음 한자로 이동
+        function navigateToNext() {
+            if (currentKanjiIndex < allKanjiData.length - 1) {
+                currentKanjiIndex++;
+                updateKanjiDisplay();
+            }
+        }
+        
+        // 화면 업데이트 및 URL 변경
+        function updateKanjiDisplay() {
+            // URL 업데이트
+            history.pushState(null, '', `kanji_detail.html?id=${currentKanjiIndex}`);
+            
+            // 한자 정보 새로 표시
+            displayKanjiDetail();
+            
+            // 버튼 상태 업데이트
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            
+            prevButton.disabled = currentKanjiIndex <= 0;
+            nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
+            
+            // 정보 표시 상태 처리
+            const detailsContainer = document.getElementById('detailsContainer');
+            const toggleBtn = document.getElementById('toggleBtn');
+            
+            // 모바일 여부 확인
+            const isMobile = window.innerWidth <= 600;
+            
+            if (isMobile) {
+                // 모바일에서는 기본적으로 정보를 숨김 (클래스는 유지)
+                detailsContainer.classList.remove('show');
+                document.getElementById('meaningContainer').classList.remove('show');
+                toggleBtn.textContent = '모든 정보 보기';
+            } else {
+                // 데스크톱에서는 정보를 표시
+                detailsContainer.classList.remove('hidden');
+                toggleBtn.textContent = '정보 숨기기';
+            }
+            
+            // 페이지 맨 위로 스크롤
+            window.scrollTo(0, 0);
+        }
+        
+        // 한자 상세 정보 표시
+        function displayKanjiDetail() {
+            if (isNaN(currentKanjiIndex) || currentKanjiIndex < 0 || currentKanjiIndex >= allKanjiData.length || !allKanjiData[currentKanjiIndex].kanji) {
+                showNotFoundMessage();
+                return;
+            }
+            
+            const kanji = allKanjiData[currentKanjiIndex];
+            
+            // 기본 정보 설정
+            document.getElementById('kanjiChar').textContent = kanji.kanji;
+            document.getElementById('kanjiMeaningTop').textContent = kanji.meaning || '의미 정보 없음';
+            
+            // JLPT 레벨을 읽기 섹션으로 이동
+            const jlptContainer = document.getElementById('jlptLevelContainer');
+            jlptContainer.innerHTML = '';
+            
+            if (kanji.jlpt_level) {
+                jlptContainer.className = 'jlpt-badge jlpt-' + kanji.jlpt_level.toLowerCase();
+                jlptContainer.textContent = kanji.jlpt_level;
+            } else {
+                jlptContainer.style.display = 'none';
+            }
+            
+            // 알고 있음/모름 버튼 상태 업데이트
+            updateKnownStatus();
+            
+            // 읽기 정보
+            const onyomi = kanji.readings && kanji.readings.onyomi && kanji.readings.onyomi.length > 0 ? 
+                kanji.readings.onyomi.join(', ') : '정보 없음';
+            const kunyomi = kanji.readings && kanji.readings.kunyomi && kanji.readings.kunyomi.length > 0 ? 
+                kanji.readings.kunyomi.join(', ') : '정보 없음';
+                
+            document.getElementById('onyomi').textContent = onyomi;
+            document.getElementById('kunyomi').textContent = kunyomi;
+            
+            // 한자 구성 설명
+            const shapeSection = document.getElementById('shapeSection');
+            const shapeExplanation = document.getElementById('shapeExplanation');
+            
+            if (kanji.shape_explanation) {
+                // 한자 구성 설명 가독성 개선
+                let formattedExplanation = kanji.shape_explanation.trim();
+                
+                // 문장 단위로 분리 (마침표로 끝나는 문장)
+                let sentences = formattedExplanation.split(/\.\s+/);
+                let resultHTML = '';
+                
+                // 첫 번째 문장 처리 (부수 조합 설명)
+                if (sentences.length > 0 && sentences[0].includes('=')) {
+                    const firstSentence = sentences[0];
+                    const parts = firstSentence.match(/([^\s]+)\s+=\s+([^\s]+)\s+\+\s+([^\s]+)/);
+                    
+                    if (parts && parts.length >= 4) {
+                        resultHTML += `<div class="meaning-block">
+                            <div class="shape-part"><span class="component">${parts[1]}</span></div>
+                            <div class="shape-equals">=</div>
+                            <div class="shape-part"><span class="component">${parts[2]}</span></div>
+                            <div class="shape-plus">+</div>
+                            <div class="shape-part"><span class="component">${parts[3]}</span></div>
+                        </div>`;
+                        
+                        // 첫 문장 처리 후 제거
+                        sentences.shift();
+                    }
+                }
+                
+                // 나머지 문장들을 하나의 문단으로 합치기
+                if (sentences.length > 0) {
+                    // 마지막 문장에 마침표가 없을 경우 추가
+                    let lastSentence = sentences[sentences.length - 1];
+                    if (!lastSentence.endsWith('.')) {
+                        sentences[sentences.length - 1] = lastSentence + '.';
+                    }
+                    
+                    // 모든 문장을 하나의 텍스트로 합치기
+                    let paragraphText = sentences.join('. ');
+                    
+                    // 새로운 접근법: 문자를 하나씩 돌며 한자만 찾아서 스타일 적용
+                    let result = '';
+                    for (let i = 0; i < paragraphText.length; i++) {
+                        const char = paragraphText[i];
+                        // 한자 범위 체크 (CJK 통합 한자: \u4E00-\u9FFF)
+                        if (/[\u4E00-\u9FFF]/.test(char)) {
+                            result += `<span class="component">${char}</span>`;
+                        } else {
+                            result += char;
+                        }
+                    }
+                    
+                    // 괄호 스타일 적용
+                    result = result
+                        .replace(/\(([^)]+)\)/g, function(match) {
+                            return `<span class="bracket">${match}</span>`;
+                        })
+                        .replace(/（([^）]+)）/g, function(match) {
+                            return `<span class="bracket">${match}</span>`;
+                        });
+                    
+                    // 문단 추가
+                    resultHTML += `<p>${result}</p>`;
+                }
+                
+                shapeExplanation.innerHTML = resultHTML;
+                shapeSection.style.display = 'block';
+            } else {
+                shapeSection.style.display = 'none';
+            }
+
+            // 자주 쓰이는 단어 섹션 업데이트
+            const wordExamples = document.getElementById('wordExamples');
+            const kanjiChar = kanji.kanji;
+            wordExamples.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #777;">
+                    준비 중입니다. 나중에 추가될 예정입니다.
+                    <div style="margin-top: 15px;">
+                        <a href="https://ja.dict.naver.com/?#/search?query=*${encodeURIComponent(kanjiChar)}*" target="_blank" class="back-button">네이버 사전에서 검색하기</a>
+                    </div>
+                </div>
+            `;
+            
+            // 문서 제목 업데이트
+            document.title = `${kanji.kanji} - 한자 상세 정보`;
+        }
+        
+        // 한자를 찾을 수 없을 때 메시지 표시
+        function showNotFoundMessage() {
+            document.getElementById('kanjiCard').style.display = 'none';
+            document.getElementById('notFoundMessage').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
