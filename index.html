@@ -283,6 +283,54 @@
             }
         }
         
+        // URL에서 레벨 파라미터 가져오기
+        function getLevelFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const nLevel = urlParams.get('n');
+            
+            if (nLevel) {
+                const level = `N${nLevel}`;
+                // 유효한 레벨인지 확인 (N1~N5)
+                if (['N1', 'N2', 'N3', 'N4', 'N5'].includes(level)) {
+                    return level;
+                }
+            }
+            return 'all';
+        }
+        
+        // URL에서 검색어 가져오기
+        function getSearchTermFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('q') || '';
+        }
+        
+        // URL 업데이트 (레벨 변경 시)
+        function updateUrl(level, search) {
+            let url = window.location.pathname;
+            const params = new URLSearchParams();
+            
+            // 레벨 파라미터 추가
+            if (level !== 'all') {
+                // N1, N2 등에서 숫자만 추출
+                const levelNumber = level.replace('N', '');
+                params.set('n', levelNumber);
+            }
+            
+            // 검색어 파라미터 추가
+            if (search && search.trim() !== '') {
+                params.set('q', search.trim());
+            }
+            
+            // 파라미터가 있으면 URL에 추가
+            const queryString = params.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+            
+            // 브라우저 히스토리 변경 (새로고침 없이 URL 업데이트)
+            window.history.pushState({}, '', url);
+        }
+        
         // 쿠키 설정 함수
         function setCookie(name, value, days) {
             let expires = "";
@@ -311,6 +359,12 @@
             try {
                 // 알고 있는 한자 목록 불러오기
                 loadKnownKanjiFromStorage();
+                
+                // URL에서 레벨 파라미터 가져오기
+                currentLevel = getLevelFromUrl();
+                
+                // URL에서 검색어 가져오기
+                searchTerm = getSearchTermFromUrl();
                 
                 // 쿠키에서 의미 표시 상태 불러오기
                 const savedShowMeaning = getCookie('showMeaning');
@@ -355,11 +409,33 @@
                 const response = await fetch('https://raw.githubusercontent.com/yunsuu/-data/refs/heads/main/kanji_data_all.json');
                 kanjiData = await response.json();
                 updateLevelCounts(); // 각 레벨별 한자 수 업데이트
+                
+                // 저장된 레벨에 따라 탭 UI 업데이트
+                updateTabUI();
+                
                 filterAndDisplayKanji();
                 
                 // 토글 버튼 이벤트 리스너 설정
                 document.getElementById('toggleMeaningBtn').addEventListener('click', toggleMeaning);
                 document.getElementById('toggleKnownBtn').addEventListener('click', toggleKnownFilter);
+                
+                // 브라우저 뒤로가기/앞으로가기 처리
+                window.onpopstate = function() {
+                    // URL에서 레벨 파라미터 다시 가져오기
+                    currentLevel = getLevelFromUrl();
+                    
+                    // URL에서 검색어 다시 가져오기
+                    searchTerm = getSearchTermFromUrl();
+                    
+                    // 검색창 업데이트
+                    document.getElementById('searchInput').value = searchTerm;
+                    
+                    // 탭 UI 업데이트
+                    updateTabUI();
+                    
+                    // 한자 필터링 및 표시
+                    filterAndDisplayKanji();
+                };
             } catch (error) {
                 console.error('데이터를 불러오는 중 오류가 발생했습니다:', error);
             }
@@ -581,8 +657,20 @@
 
         function performSearch() {
             searchTerm = document.getElementById('searchInput').value.trim();
+            // URL 업데이트 (현재 레벨과 새 검색어)
+            updateUrl(currentLevel, searchTerm);
             filterAndDisplayKanji();
         }
+        
+        // 페이지 로드 시 URL에서 검색어를 검색창에 채우기
+        document.addEventListener('DOMContentLoaded', function() {
+            // URL에서 가져온 검색어가 있으면 검색창에 설정
+            const searchInput = document.getElementById('searchInput');
+            const urlSearchTerm = getSearchTermFromUrl();
+            if (urlSearchTerm) {
+                searchInput.value = urlSearchTerm;
+            }
+        });
         
         // 탭 클릭 이벤트
         document.querySelectorAll('.tab').forEach(tab => {
@@ -594,6 +682,9 @@
                 // 선택된 레벨 저장
                 currentLevel = this.getAttribute('data-level');
                 
+                // URL에 선택된 레벨 저장
+                updateUrl(currentLevel, searchTerm);
+                
                 // 한자 필터링 및 표시
                 filterAndDisplayKanji();
             });
@@ -603,6 +694,16 @@
         window.addEventListener('beforeunload', function() {
             sessionStorage.setItem('kanjiData', JSON.stringify(kanjiData));
         });
+        
+        // 탭 UI 업데이트 함수
+        function updateTabUI() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.getAttribute('data-level') === currentLevel) {
+                    document.querySelector('.tab.active').classList.remove('active');
+                    tab.classList.add('active');
+                }
+            });
+        }
     </script>
 </body>
 </html> 

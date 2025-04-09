@@ -590,28 +590,53 @@
         .word-examples {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 10px;
+            gap: 15px;
             margin-top: 15px;
         }
         .word-item {
-            background-color: #f0f8ff;
-            border-radius: 4px;
-            padding: 10px;
-            border-left: 3px solid #5d9cec;
+            background-color: #f5f8ff;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #5d9cec;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .word-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         .word {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             margin-bottom: 5px;
-        }
-        .word-meaning {
-            font-size: 14px;
-            color: #666;
+            color: #333;
         }
         .word-reading {
-            font-size: 12px;
-            color: #888;
-            font-style: italic;
+            font-size: 14px;
+            color: #5d9cec;
+            margin-bottom: 8px;
+            font-style: normal;
+            letter-spacing: 0.5px;
+        }
+        .word-meaning {
+            font-size: 15px;
+            color: #555;
+            line-height: 1.4;
+            border-top: 1px dashed #eaeaea;
+            padding-top: 6px;
+        }
+        /* 모바일 화면에서 단어 목록 스타일 조정 */
+        @media (max-width: 600px) {
+            .word-examples {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 10px;
+            }
+            .word-item {
+                padding: 10px;
+            }
+            .word {
+                font-size: 18px;
+            }
         }
         /* 로딩 스타일 */
         .loading {
@@ -1003,9 +1028,8 @@
                     <div class="info-section" id="wordExamplesSection">
                         <h3 class="section-title">자주 쓰이는 단어</h3>
                         <div class="word-examples" id="wordExamples">
-                            <div style="text-align: center; padding: 20px; color: #777;">
-                                준비 중입니다. 나중에 추가될 예정입니다.
-                            </div>
+                            <div id="loadingMessage" class="loading">로딩 중입니다...</div>
+                            <div id="errorMessage" class="error-message" style="display: none;">데이터를 불러오는 중 오류가 발생했습니다.</div>
                         </div>
                     </div>
                 </div>
@@ -1202,23 +1226,37 @@
             updateNextButtonState();
         }
         
-        // 다음 버튼 상태 업데이트
+        // 이전/다음 버튼 상태 업데이트
         function updateNextButtonState() {
             const nextButton = document.getElementById('nextButton');
+            const prevButton = document.getElementById('prevButton');
             const skipKnown = document.getElementById('skipKnownCheck').checked;
             
             if (skipKnown) {
-                // 건너뛰기 모드일 때는 마지막 한자가 아니고 다음 모르는 한자가 있을 때만 활성화
+                // 건너뛰기 모드일 때는 모르는 한자가 있을 때만 활성화
                 nextButton.disabled = !hasNextUnknownKanji();
+                prevButton.disabled = !hasPreviousUnknownKanji();
             } else {
-                // 일반 모드일 때는 마지막 한자가 아닐 때만 활성화
+                // 일반 모드일 때는 처음/마지막 한자가 아닐 때만 활성화
                 nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
+                prevButton.disabled = currentKanjiIndex <= 0;
             }
         }
         
         // 다음 모르는 한자가 있는지 확인
         function hasNextUnknownKanji() {
             for (let i = currentKanjiIndex + 1; i < allKanjiData.length; i++) {
+                const kanji = allKanjiData[i].kanji;
+                if (!knownKanji[kanji]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // 이전 모르는 한자가 있는지 확인
+        function hasPreviousUnknownKanji() {
+            for (let i = currentKanjiIndex - 1; i >= 0; i--) {
                 const kanji = allKanjiData[i].kanji;
                 if (!knownKanji[kanji]) {
                     return true;
@@ -1237,9 +1275,6 @@
             
             // 버튼 상태 업데이트
             updateNextButtonState();
-            
-            const prevButton = document.getElementById('prevButton');
-            prevButton.disabled = currentKanjiIndex <= 0;
             
             // 정보 표시 상태 처리
             const detailsContainer = document.getElementById('detailsContainer');
@@ -1375,14 +1410,7 @@
             // 자주 쓰이는 단어 섹션 업데이트
             const wordExamples = document.getElementById('wordExamples');
             const kanjiChar = kanji.kanji;
-            wordExamples.innerHTML = `
-                <div style="text-align: center; padding: 20px; color: #777;">
-                    준비 중입니다. 나중에 추가될 예정입니다.
-                    <div style="margin-top: 15px;">
-                        <a href="https://ja.dict.naver.com/?#/search?query=*${encodeURIComponent(kanjiChar)}*" target="_blank" class="back-button">네이버 사전에서 검색하기</a>
-                    </div>
-                </div>
-            `;
+            loadWordExamples(kanjiChar);
             
             // 문서 제목 업데이트
             document.title = `${kanji.kanji} - 한자 상세 정보`;
@@ -1396,9 +1424,40 @@
 
         // 이전 한자로 이동
         function navigateToPrevious() {
-            if (currentKanjiIndex > 0) {
-                currentKanjiIndex--;
-                updateKanjiDisplay();
+            const skipKnown = document.getElementById('skipKnownCheck').checked;
+            
+            if (skipKnown) {
+                navigateToPreviousUnknown();
+            } else {
+                // 기존 이전 버튼 로직
+                if (currentKanjiIndex > 0) {
+                    currentKanjiIndex--;
+                    updateKanjiDisplay();
+                }
+            }
+        }
+        
+        // 이전 모르는 한자로 이동
+        function navigateToPreviousUnknown() {
+            let prevIndex = currentKanjiIndex - 1;
+            
+            // 이전 모르는 한자 찾기
+            while (prevIndex >= 0) {
+                const kanji = allKanjiData[prevIndex].kanji;
+                
+                // 모르는 한자인 경우 (knownKanji 객체에 없거나 false인 경우)
+                if (!knownKanji[kanji]) {
+                    currentKanjiIndex = prevIndex;
+                    updateKanjiDisplay();
+                    return;
+                }
+                
+                prevIndex--;
+            }
+            
+            // 모든 한자를 다 알고 있는 경우
+            if (prevIndex < 0) {
+                alert('앞에 더 이상 모르는 한자가 없습니다!');
             }
         }
         
@@ -1437,7 +1496,46 @@
             
             // 모든 한자를 다 알고 있는 경우
             if (nextIndex >= allKanjiData.length) {
-                alert('더 이상 모르는 한자가 없습니다!');
+                alert('뒤에 더 이상 모르는 한자가 없습니다!');
+            }
+        }
+
+        async function loadWordExamples(kanji) {
+            const wordExamplesContainer = document.getElementById('wordExamples');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // 기존 단어 예시 제거 (로딩 및 에러 메시지 제외)
+            const existingItems = wordExamplesContainer.querySelectorAll('.word-item');
+            existingItems.forEach(item => item.remove());
+
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/yunsuu/-data/refs/heads/main/kanji_words_final.json');
+                const data = await response.json();
+                const kanjiData = data.find(item => item.kanji === kanji);
+
+                loadingMessage.style.display = 'none';
+
+                if (kanjiData && kanjiData.words && kanjiData.words.length > 0) {
+                    // 단어 데이터가 있을 경우 표시
+                    kanjiData.words.forEach(word => {
+                        const wordItem = document.createElement('div');
+                        wordItem.className = 'word-item';
+                        wordItem.innerHTML = `
+                            <div class='word'>${word.word}</div>
+                            <div class='word-reading'>${word.hiragana}</div>
+                            <div class='word-meaning'>${word.meaning}</div>
+                        `;
+                        wordExamplesContainer.appendChild(wordItem);
+                    });
+                } else {
+                    // 단어 데이터가 없을 경우 안내 메시지 표시
+                    wordExamplesContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #777;">이 한자에 대한 단어 정보가 준비 중입니다.</div>';
+                }
+            } catch (error) {
+                console.error('단어 데이터를 불러오는 중 오류가 발생했습니다:', error);
+                loadingMessage.style.display = 'none';
+                errorMessage.style.display = 'block';
             }
         }
     </script>
