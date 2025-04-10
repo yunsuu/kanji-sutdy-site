@@ -104,6 +104,29 @@
             align-items: center;
             justify-content: center;
         }
+        /* 북마크 아이콘 스타일 */
+        .bookmark-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            color: #ddd;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        .bookmark-icon:hover {
+            color: #FFC107;
+            transform: scale(1.1);
+        }
+        .bookmark-icon.marked {
+            color: #FFC107;
+        }
         .kanji-basic-info {
             width: 100%;
             margin-bottom: 15px;
@@ -982,6 +1005,7 @@
                             <div class="kanji-meaning-top" id="kanjiMeaningTop"></div>
                         </div>
                         <div class="kanji-char" id="kanjiChar"></div>
+                        <div class="bookmark-icon" id="bookmarkIcon">☆</div>
                     </div>
                 </div>
                 
@@ -1046,6 +1070,9 @@
             // 알고 있는 한자 목록 로드
             loadKnownKanji();
             
+            // 북마크한 한자 목록 로드
+            loadBookmarkedKanji();
+            
             // 데이터 가져오기
             loadKanjiData(kanjiId);
             
@@ -1098,6 +1125,9 @@
             const toggleKnownBtn = document.getElementById('toggleKnownBtn');
             toggleKnownBtn.addEventListener('click', toggleCurrentKanjiKnown);
             
+            // 북마크 아이콘 클릭 이벤트 리스너
+            document.getElementById('bookmarkIcon').addEventListener('click', toggleBookmark);
+            
             // 화면 크기 변경 시 UI 업데이트
             window.addEventListener('resize', function() {
                 const newIsMobile = window.innerWidth <= 600;
@@ -1111,6 +1141,7 @@
         let currentKanjiIndex = 0;
         let allKanjiData = [];
         let knownKanji = {}; // 알고 있는 한자 목록
+        let bookmarkedKanji = {}; // 북마크한 한자 목록
         
         // 알고 있는 한자 목록 로드
         function loadKnownKanji() {
@@ -1123,6 +1154,19 @@
         // 알고 있는 한자 목록 저장
         function saveKnownKanji() {
             localStorage.setItem('knownKanji', JSON.stringify(knownKanji));
+        }
+        
+        // 북마크한 한자 목록 로드
+        function loadBookmarkedKanji() {
+            const storedBookmarkedKanji = localStorage.getItem('bookmarkedKanji');
+            if (storedBookmarkedKanji) {
+                bookmarkedKanji = JSON.parse(storedBookmarkedKanji);
+            }
+        }
+        
+        // 북마크한 한자 목록 저장
+        function saveBookmarkedKanji() {
+            localStorage.setItem('bookmarkedKanji', JSON.stringify(bookmarkedKanji));
         }
         
         // 현재 한자의 알고 있음/모름 상태 토글
@@ -1310,6 +1354,9 @@
             // 기본 정보 설정
             document.getElementById('kanjiChar').textContent = kanji.kanji;
             document.getElementById('kanjiMeaningTop').textContent = kanji.meaning || '의미 정보 없음';
+            
+            // 북마크 상태 업데이트
+            updateBookmarkStatus();
             
             // JLPT 레벨을 읽기 섹션으로 이동
             const jlptContainer = document.getElementById('jlptLevelContainer');
@@ -1536,6 +1583,35 @@
                 console.error('단어 데이터를 불러오는 중 오류가 발생했습니다:', error);
                 loadingMessage.style.display = 'none';
                 errorMessage.style.display = 'block';
+            }
+        }
+
+        // 북마크 토글 함수
+        function toggleBookmark() {
+            const kanji = allKanjiData[currentKanjiIndex].kanji;
+            
+            if (bookmarkedKanji[kanji]) {
+                delete bookmarkedKanji[kanji];
+            } else {
+                bookmarkedKanji[kanji] = true;
+            }
+            
+            // 저장하고 UI 업데이트
+            saveBookmarkedKanji();
+            updateBookmarkStatus();
+        }
+        
+        // 북마크 상태 UI 업데이트
+        function updateBookmarkStatus() {
+            const kanji = allKanjiData[currentKanjiIndex].kanji;
+            const bookmarkIcon = document.getElementById('bookmarkIcon');
+            
+            if (bookmarkedKanji[kanji]) {
+                bookmarkIcon.textContent = "★";
+                bookmarkIcon.classList.add('marked');
+            } else {
+                bookmarkIcon.textContent = "☆";
+                bookmarkIcon.classList.remove('marked');
             }
         }
     </script>

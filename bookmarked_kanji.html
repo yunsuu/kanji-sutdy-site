@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>북마크한 한자</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .kanji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .kanji-item {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .kanji-item:hover {
+            transform: translateY(-5px);
+            background-color: #f0f0f0;
+        }
+        .kanji-char {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        .kanji-meaning {
+            font-size: 12px;
+            color: #666;
+            transition: opacity 0.3s;
+        }
+        .hide-meaning .kanji-meaning {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        .jlpt-level {
+            font-size: 10px;
+            background-color: #2196F3;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        .bookmark-icon {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 20px;
+            height: 20px;
+            color: #FFC107;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2;
+            transition: all 0.3s;
+        }
+        .bookmark-icon:hover {
+            color: #FFA000;
+        }
+        .bookmark-icon.marked {
+            color: #FFC107;
+        }
+        .known-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            color: #777;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2;
+            transition: all 0.3s;
+        }
+        .known-icon:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .known-icon.marked {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .kanji-item.known {
+            opacity: 0.5;
+            background-color: #f9f9f9;
+        }
+        .show-only-unknown .kanji-item.known {
+            display: none;
+        }
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .toggle-meaning-btn {
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .toggle-meaning-btn:hover {
+            background-color: #F57C00;
+        }
+        .toggle-meaning-btn.active {
+            background-color: #607D8B;
+        }
+        .toggle-known-filter-btn {
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .toggle-known-filter-btn:hover {
+            background-color: #F57C00;
+        }
+        .toggle-known-filter-btn.active {
+            background-color: #607D8B;
+        }
+        .nav-btn {
+            background-color: #3F51B5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .nav-btn:hover {
+            background-color: #303F9F;
+        }
+        .no-bookmarks {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            grid-column: 1 / -1;
+        }
+        /* 반응형 스타일 */
+        @media (max-width: 600px) {
+            .kanji-grid {
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 10px;
+            }
+            .control-panel {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            .toggle-meaning-btn, .toggle-known-filter-btn, .nav-btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>북마크한 한자</h1>
+    
+    <div class="control-panel">
+        <button class="toggle-meaning-btn" id="toggleMeaningBtn">한국어 의미 숨기기</button>
+        <button class="toggle-known-filter-btn" id="toggleKnownBtn">모르는 한자만 보기</button>
+        <a href="index.html" class="nav-btn">메인으로 돌아가기</a>
+    </div>
+    
+    <div class="kanji-grid" id="kanjiGrid">
+        <!-- 북마크한 한자 아이템들이 여기에 동적으로 추가됩니다 -->
+    </div>
+
+    <script>
+        // 한자 데이터와 북마크한 한자 목록
+        let kanjiData = [];
+        let bookmarkedKanji = {};
+        let knownKanji = {}; // 알고 있는 한자 목록
+        let showMeaning = true; // 의미 표시 여부
+        let showOnlyUnknown = false; // 모르는 한자만 표시 여부
+        
+        // 로컬 스토리지에서 북마크한 한자 목록 불러오기
+        function loadBookmarkedKanjiFromStorage() {
+            const storedBookmarkedKanji = localStorage.getItem('bookmarkedKanji');
+            if (storedBookmarkedKanji) {
+                bookmarkedKanji = JSON.parse(storedBookmarkedKanji);
+            }
+        }
+        
+        // 북마크한 한자 저장
+        function saveBookmarkedKanjiToStorage() {
+            localStorage.setItem('bookmarkedKanji', JSON.stringify(bookmarkedKanji));
+        }
+        
+        // 알고 있는 한자 목록 불러오기
+        function loadKnownKanjiFromStorage() {
+            const storedKnownKanji = localStorage.getItem('knownKanji');
+            if (storedKnownKanji) {
+                knownKanji = JSON.parse(storedKnownKanji);
+            }
+        }
+        
+        // 알고 있는 한자 저장
+        function saveKnownKanjiToStorage() {
+            localStorage.setItem('knownKanji', JSON.stringify(knownKanji));
+        }
+        
+        // 쿠키 설정 함수
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/";
+        }
+        
+        // 쿠키 읽기 함수
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+        
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 북마크한 한자 목록 불러오기
+                loadBookmarkedKanjiFromStorage();
+                
+                // 알고 있는 한자 목록 불러오기
+                loadKnownKanjiFromStorage();
+                
+                // 쿠키에서 의미 표시 상태 불러오기
+                const savedShowMeaning = getCookie('showMeaning');
+                if (savedShowMeaning !== null) {
+                    showMeaning = savedShowMeaning === 'true';
+                    
+                    // 토글 버튼 및 그리드 상태 업데이트
+                    const toggleBtn = document.getElementById('toggleMeaningBtn');
+                    const kanjiGrid = document.getElementById('kanjiGrid');
+                    
+                    if (!showMeaning) {
+                        kanjiGrid.classList.add('hide-meaning');
+                        toggleBtn.textContent = '한국어 의미 보이기';
+                        toggleBtn.classList.add('active');
+                    } else {
+                        kanjiGrid.classList.remove('hide-meaning');
+                        toggleBtn.textContent = '한국어 의미 숨기기';
+                        toggleBtn.classList.remove('active');
+                    }
+                }
+                
+                // 모르는 한자만 표시 상태 불러오기
+                const savedShowOnlyUnknown = getCookie('showOnlyUnknown');
+                if (savedShowOnlyUnknown !== null) {
+                    showOnlyUnknown = savedShowOnlyUnknown === 'true';
+                    
+                    // 토글 버튼 및 그리드 상태 업데이트
+                    const toggleKnownBtn = document.getElementById('toggleKnownBtn');
+                    const kanjiGrid = document.getElementById('kanjiGrid');
+                    
+                    if (showOnlyUnknown) {
+                        kanjiGrid.classList.add('show-only-unknown');
+                        toggleKnownBtn.textContent = '모든 한자 보기';
+                        toggleKnownBtn.classList.add('active');
+                    } else {
+                        kanjiGrid.classList.remove('show-only-unknown');
+                        toggleKnownBtn.textContent = '모르는 한자만 보기';
+                        toggleKnownBtn.classList.remove('active');
+                    }
+                }
+                
+                // 세션 스토리지에서 한자 데이터 가져오기
+                const sessionData = sessionStorage.getItem('kanjiData');
+                if (sessionData) {
+                    kanjiData = JSON.parse(sessionData);
+                    displayBookmarkedKanji();
+                } else {
+                    // 세션 스토리지에 데이터가 없을 경우 직접 가져오기
+                    const response = await fetch('https://raw.githubusercontent.com/yunsuu/-data/refs/heads/main/kanji_data_all.json');
+                    kanjiData = await response.json();
+                    displayBookmarkedKanji();
+                }
+            } catch (error) {
+                console.error('데이터를 불러오는 중 오류가 발생했습니다:', error);
+            }
+        });
+        
+        // 의미 표시 토글 함수
+        function toggleMeaning() {
+            showMeaning = !showMeaning;
+            const toggleBtn = document.getElementById('toggleMeaningBtn');
+            const kanjiGrid = document.getElementById('kanjiGrid');
+            
+            if (showMeaning) {
+                kanjiGrid.classList.remove('hide-meaning');
+                toggleBtn.textContent = '한국어 의미 숨기기';
+                toggleBtn.classList.remove('active');
+            } else {
+                kanjiGrid.classList.add('hide-meaning');
+                toggleBtn.textContent = '한국어 의미 보이기';
+                toggleBtn.classList.add('active');
+            }
+            
+            // 쿠키에 상태 저장 (30일 유지)
+            setCookie('showMeaning', showMeaning, 30);
+        }
+        
+        // 모르는 한자만 표시 토글 함수
+        function toggleKnownFilter() {
+            showOnlyUnknown = !showOnlyUnknown;
+            const toggleBtn = document.getElementById('toggleKnownBtn');
+            const kanjiGrid = document.getElementById('kanjiGrid');
+            
+            if (showOnlyUnknown) {
+                kanjiGrid.classList.add('show-only-unknown');
+                toggleBtn.textContent = '모든 한자 보기';
+                toggleBtn.classList.add('active');
+            } else {
+                kanjiGrid.classList.remove('show-only-unknown');
+                toggleBtn.textContent = '모르는 한자만 보기';
+                toggleBtn.classList.remove('active');
+            }
+            
+            // 쿠키에 상태 저장 (30일 유지)
+            setCookie('showOnlyUnknown', showOnlyUnknown, 30);
+        }
+        
+        // 북마크 토글 함수
+        function toggleBookmarkKanji(event, kanjiChar) {
+            event.stopPropagation(); // 카드 클릭 이벤트 방지
+            
+            // 북마크 제거
+            delete bookmarkedKanji[kanjiChar];
+            
+            // 로컬 스토리지에 저장
+            saveBookmarkedKanjiToStorage();
+            
+            // 화면에서 항목 제거
+            const item = document.querySelector(`.kanji-item[data-kanji="${kanjiChar}"]`);
+            if (item) {
+                item.remove();
+            }
+            
+            // 북마크가 없을 경우 메시지 표시
+            if (Object.keys(bookmarkedKanji).length === 0) {
+                displayNoBookmarksMessage();
+            }
+        }
+        
+        // 한자 알고 있음 토글 함수
+        function toggleKnownKanji(event, kanjiChar) {
+            event.stopPropagation(); // 카드 클릭 이벤트 방지
+            
+            if (knownKanji[kanjiChar]) {
+                delete knownKanji[kanjiChar];
+            } else {
+                knownKanji[kanjiChar] = true;
+            }
+            
+            // 로컬 스토리지에 저장
+            saveKnownKanjiToStorage();
+            
+            // 화면 업데이트
+            updateKnownStatus(kanjiChar);
+        }
+        
+        // 한자의 알고 있음 상태 업데이트
+        function updateKnownStatus(kanjiChar) {
+            const itemElements = document.querySelectorAll(`.kanji-item[data-kanji="${kanjiChar}"]`);
+            
+            itemElements.forEach(item => {
+                const iconElement = item.querySelector('.known-icon');
+                
+                if (knownKanji[kanjiChar]) {
+                    item.classList.add('known');
+                    iconElement.classList.add('marked');
+                    iconElement.textContent = '✓';
+                } else {
+                    item.classList.remove('known');
+                    iconElement.classList.remove('marked');
+                    iconElement.textContent = '?';
+                }
+            });
+        }
+        
+        // 북마크한 한자 표시 함수
+        function displayBookmarkedKanji() {
+            const kanjiGrid = document.getElementById('kanjiGrid');
+            kanjiGrid.innerHTML = '';
+            
+            // 의미 표시 상태 설정
+            if (!showMeaning) {
+                kanjiGrid.classList.add('hide-meaning');
+            } else {
+                kanjiGrid.classList.remove('hide-meaning');
+            }
+            
+            // 모르는 한자만 표시 상태 설정
+            if (showOnlyUnknown) {
+                kanjiGrid.classList.add('show-only-unknown');
+            } else {
+                kanjiGrid.classList.remove('show-only-unknown');
+            }
+            
+            // 북마크한 한자가 없을 경우 메시지 표시
+            if (Object.keys(bookmarkedKanji).length === 0) {
+                displayNoBookmarksMessage();
+                return;
+            }
+            
+            // 북마크한 한자만 필터링
+            const bookmarkedKanjiChars = Object.keys(bookmarkedKanji);
+            const filteredData = kanjiData.filter(kanji => bookmarkedKanjiChars.includes(kanji.kanji));
+            
+            // 결과 표시
+            filteredData.forEach((kanji) => {
+                const kanjiChar = kanji.kanji;
+                
+                // 원본 배열에서의 인덱스 찾기
+                const originalIndex = kanjiData.findIndex(k => k.kanji === kanjiChar);
+                
+                // 아이템 요소 생성
+                const item = document.createElement('div');
+                item.className = 'kanji-item';
+                item.setAttribute('data-kanji', kanjiChar);
+                
+                // 알고 있는 한자면 클래스 추가
+                if (knownKanji[kanjiChar]) {
+                    item.classList.add('known');
+                }
+                
+                item.addEventListener('click', function() {
+                    // 한자 상세 페이지로 이동
+                    window.location.href = `kanji_detail.html?id=${originalIndex}`;
+                });
+                
+                // 북마크 아이콘 추가
+                const bookmarkIcon = document.createElement('div');
+                bookmarkIcon.className = 'bookmark-icon marked';
+                bookmarkIcon.innerHTML = '★';
+                bookmarkIcon.addEventListener('click', (e) => toggleBookmarkKanji(e, kanjiChar));
+                
+                // 알고 있음 아이콘 추가
+                const knownIcon = document.createElement('div');
+                knownIcon.className = 'known-icon';
+                knownIcon.textContent = knownKanji[kanjiChar] ? '✓' : '?';
+                if (knownKanji[kanjiChar]) {
+                    knownIcon.classList.add('marked');
+                }
+                knownIcon.addEventListener('click', (e) => toggleKnownKanji(e, kanjiChar));
+                
+                // 한자 문자
+                const charDiv = document.createElement('div');
+                charDiv.className = 'kanji-char';
+                charDiv.textContent = kanjiChar;
+                
+                // 한자 의미
+                const meaningDiv = document.createElement('div');
+                meaningDiv.className = 'kanji-meaning';
+                meaningDiv.textContent = kanji.meaning || '의미 정보 없음';
+                
+                // JLPT 레벨 표시 제거 (이 부분 주석 처리)
+                // if (kanji.jlpt_level) {
+                //     const levelDiv = document.createElement('div');
+                //     levelDiv.className = 'jlpt-level';
+                //     levelDiv.textContent = kanji.jlpt_level;
+                //     item.appendChild(levelDiv);
+                // }
+                
+                // 아이템에 요소 추가
+                item.appendChild(bookmarkIcon);
+                item.appendChild(knownIcon);
+                item.appendChild(charDiv);
+                item.appendChild(meaningDiv);
+                
+                // 그리드에 아이템 추가
+                kanjiGrid.appendChild(item);
+            });
+        }
+        
+        // 북마크 없음 메시지 표시
+        function displayNoBookmarksMessage() {
+            const kanjiGrid = document.getElementById('kanjiGrid');
+            const noBookmarks = document.createElement('div');
+            noBookmarks.className = 'no-bookmarks';
+            noBookmarks.textContent = '북마크한 한자가 없습니다. 메인 페이지에서 별표(★) 아이콘을 클릭하여 한자를 북마크하세요.';
+            kanjiGrid.appendChild(noBookmarks);
+        }
+        
+        // 토글 버튼 이벤트 리스너 설정
+        document.getElementById('toggleMeaningBtn').addEventListener('click', toggleMeaning);
+        document.getElementById('toggleKnownBtn').addEventListener('click', toggleKnownFilter);
+    </script>
+</body>
+</html>
