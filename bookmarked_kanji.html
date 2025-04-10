@@ -199,6 +199,7 @@
         <button class="toggle-meaning-btn" id="toggleMeaningBtn">한국어 의미 숨기기</button>
         <button class="toggle-known-filter-btn" id="toggleKnownBtn">모르는 한자만 보기</button>
         <a href="index.html" class="nav-btn">메인으로 돌아가기</a>
+        <a href="javascript:history.back()" class="nav-btn">이전 페이지로 돌아가기</a>
     </div>
     
     <div class="kanji-grid" id="kanjiGrid">
@@ -472,8 +473,11 @@
                 }
                 
                 item.addEventListener('click', function() {
-                    // 한자 상세 페이지로 이동
-                    window.location.href = `kanji_detail.html?id=${originalIndex}`;
+                    // 북마크한 한자 목록을 쿼리 스트링으로 변환
+                    const kanjiList = bookmarkedKanjiChars.join(',');
+                    
+                    // 한자 상세 페이지로 이동 (북마크 모드와 북마크 목록 추가)
+                    window.location.href = `kanji_detail.html?id=${originalIndex}&bookmarked=true&list=${kanjiList}`;
                 });
                 
                 // 북마크 아이콘 추가

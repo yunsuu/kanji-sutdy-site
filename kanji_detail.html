@@ -988,6 +988,7 @@
             <a href="index.html" class="back-button">← 목록</a>
             <h1>한자 상세 정보</h1>
         </div>
+        <div id="bookmarkModeIndicator" style="display: none; text-align: center; color: #FF9800; font-weight: bold; margin-top: 5px;">북마크 모드 - 북마크한 한자만 이동</div>
     </div>
     
     <div id="kanjiCardContainer">
@@ -1073,6 +1074,16 @@
             // 북마크한 한자 목록 로드
             loadBookmarkedKanji();
             
+            // URL에서 북마크 모드 및 북마크 목록 가져오기
+            const isBookmarkedMode = urlParams.get('bookmarked') === 'true';
+            const bookmarkedList = urlParams.get('list');
+            
+            // 북마크된 한자 목록이 URL에 있는 경우 파싱
+            if (isBookmarkedMode && bookmarkedList) {
+                // 쉼표로 구분된 한자 목록을 배열로 변환
+                bookmarkedKanjiList = bookmarkedList.split(',');
+            }
+            
             // 데이터 가져오기
             loadKanjiData(kanjiId);
             
@@ -1142,6 +1153,8 @@
         let allKanjiData = [];
         let knownKanji = {}; // 알고 있는 한자 목록
         let bookmarkedKanji = {}; // 북마크한 한자 목록
+        let bookmarkedKanjiList = []; // URL에서 가져온 북마크된 한자 목록
+        let isBookmarkedMode = false; // 북마크 모드 여부
         
         // 알고 있는 한자 목록 로드
         function loadKnownKanji() {
@@ -1196,7 +1209,11 @@
             const skipKnown = document.getElementById('skipKnownCheck').checked;
             if (skipKnown && knownKanji[kanji]) {
                 setTimeout(() => {
-                    navigateToNextUnknown();
+                    if (isBookmarkedMode) {
+                        navigateToNextBookmarked();
+                    } else {
+                        navigateToNextUnknown();
+                    }
                 }, 300);
             }
         }
@@ -1217,6 +1234,13 @@
         
         // 한자 데이터 불러오기 및 표시
         async function loadKanjiData(kanjiId) {
+            // URL에서 북마크 모드 확인
+            const urlParams = new URLSearchParams(window.location.search);
+            isBookmarkedMode = urlParams.get('bookmarked') === 'true';
+            
+            // 북마크 모드 표시
+            document.getElementById('bookmarkModeIndicator').style.display = isBookmarkedMode ? 'block' : 'none';
+            
             // 세션 스토리지에서 데이터 가져오기 시도
             const storedData = sessionStorage.getItem('kanjiData');
             
@@ -1248,11 +1272,9 @@
             
             // 이전 버튼 이벤트
             prevButton.addEventListener('click', navigateToPrevious);
-            prevButton.disabled = currentKanjiIndex <= 0;
             
             // 다음 버튼 이벤트
             nextButton.addEventListener('click', navigateToNext);
-            nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
             
             // 체크박스 상태 로드
             const skipKnownState = localStorage.getItem('skipKnown');
@@ -1276,12 +1298,50 @@
             const prevButton = document.getElementById('prevButton');
             const skipKnown = document.getElementById('skipKnownCheck').checked;
             
-            if (skipKnown) {
-                // 건너뛰기 모드일 때는 모르는 한자가 있을 때만 활성화
+            if (isBookmarkedMode) {
+                // 북마크 모드일 때
+                if (bookmarkedKanjiList.length > 0) {
+                    const currentKanji = allKanjiData[currentKanjiIndex].kanji;
+                    const currentIdxInBookmarks = bookmarkedKanjiList.indexOf(currentKanji);
+                    
+                    if (skipKnown) {
+                        // 알고 있는 한자 건너뛰기가 활성화된 경우
+                        // 이전 모르는 북마크 한자가 있는지 확인
+                        let hasPrevUnknown = false;
+                        for (let i = currentIdxInBookmarks - 1; i >= 0; i--) {
+                            if (!knownKanji[bookmarkedKanjiList[i]]) {
+                                hasPrevUnknown = true;
+                                break;
+                            }
+                        }
+                        
+                        // 다음 모르는 북마크 한자가 있는지 확인
+                        let hasNextUnknown = false;
+                        for (let i = currentIdxInBookmarks + 1; i < bookmarkedKanjiList.length; i++) {
+                            if (!knownKanji[bookmarkedKanjiList[i]]) {
+                                hasNextUnknown = true;
+                                break;
+                            }
+                        }
+                        
+                        prevButton.disabled = !hasPrevUnknown;
+                        nextButton.disabled = !hasNextUnknown;
+                    } else {
+                        // 기본 북마크 모드
+                        prevButton.disabled = currentIdxInBookmarks <= 0;
+                        nextButton.disabled = currentIdxInBookmarks >= bookmarkedKanjiList.length - 1;
+                    }
+                } else {
+                    // 북마크 목록이 없는 경우 모두 비활성화
+                    prevButton.disabled = true;
+                    nextButton.disabled = true;
+                }
+            } else if (skipKnown) {
+                // 일반 모드 + 건너뛰기
                 nextButton.disabled = !hasNextUnknownKanji();
                 prevButton.disabled = !hasPreviousUnknownKanji();
             } else {
-                // 일반 모드일 때는 처음/마지막 한자가 아닐 때만 활성화
+                // 일반 모드
                 nextButton.disabled = currentKanjiIndex >= allKanjiData.length - 1;
                 prevButton.disabled = currentKanjiIndex <= 0;
             }
@@ -1310,9 +1370,15 @@
         }
         
         // 화면 업데이트 및 URL 변경
-        function updateKanjiDisplay() {
+        function updateKanjiDisplay(preserveBookmarkParams = false) {
             // URL 업데이트
-            history.pushState(null, '', `kanji_detail.html?id=${currentKanjiIndex}`);
+            if (isBookmarkedMode && preserveBookmarkParams) {
+                // 북마크 모드에서 파라미터 유지
+                const bookmarkedListParam = bookmarkedKanjiList.join(',');
+                history.pushState(null, '', `kanji_detail.html?id=${currentKanjiIndex}&bookmarked=true&list=${bookmarkedListParam}`);
+            } else {
+                history.pushState(null, '', `kanji_detail.html?id=${currentKanjiIndex}`);
+            }
             
             // 한자 정보 새로 표시
             displayKanjiDetail();
@@ -1471,15 +1537,60 @@
 
         // 이전 한자로 이동
         function navigateToPrevious() {
+            if (isBookmarkedMode) {
+                navigateToPreviousBookmarked();
+            } else {
+                const skipKnown = document.getElementById('skipKnownCheck').checked;
+                
+                if (skipKnown) {
+                    navigateToPreviousUnknown();
+                } else {
+                    // 기존 이전 버튼 로직
+                    if (currentKanjiIndex > 0) {
+                        currentKanjiIndex--;
+                        updateKanjiDisplay();
+                    }
+                }
+            }
+        }
+        
+        // 이전 북마크된 한자로 이동
+        function navigateToPreviousBookmarked() {
+            if (bookmarkedKanjiList.length === 0) return;
+            
+            const currentKanji = allKanjiData[currentKanjiIndex].kanji;
+            const currentIdxInBookmarks = bookmarkedKanjiList.indexOf(currentKanji);
             const skipKnown = document.getElementById('skipKnownCheck').checked;
             
-            if (skipKnown) {
-                navigateToPreviousUnknown();
-            } else {
-                // 기존 이전 버튼 로직
-                if (currentKanjiIndex > 0) {
-                    currentKanjiIndex--;
-                    updateKanjiDisplay();
+            if (currentIdxInBookmarks > 0) {
+                let prevIdx = currentIdxInBookmarks - 1;
+                
+                // 알고 있는 한자 건너뛰기가 활성화된 경우
+                if (skipKnown) {
+                    // 이전 모르는 북마크 한자 찾기
+                    while (prevIdx >= 0) {
+                        const prevKanji = bookmarkedKanjiList[prevIdx];
+                        if (!knownKanji[prevKanji]) {
+                            break; // 모르는 한자를 찾았을 때 중단
+                        }
+                        prevIdx--;
+                    }
+                    
+                    // 모르는 한자가 없는 경우
+                    if (prevIdx < 0) {
+                        alert('앞에 더 이상 모르는 북마크 한자가 없습니다!');
+                        return;
+                    }
+                }
+                
+                // 이전 북마크된 한자 찾기
+                const prevBookmarkedKanji = bookmarkedKanjiList[prevIdx];
+                // 해당 한자의 인덱스 찾기
+                const prevIndex = allKanjiData.findIndex(k => k.kanji === prevBookmarkedKanji);
+                
+                if (prevIndex !== -1) {
+                    currentKanjiIndex = prevIndex;
+                    updateKanjiDisplay(true);
                 }
             }
         }
@@ -1510,19 +1621,64 @@
         
         // 다음 한자로 이동
         function navigateToNext() {
-            const skipKnown = document.getElementById('skipKnownCheck').checked;
-            
-            if (skipKnown) {
-                navigateToNextUnknown();
+            if (isBookmarkedMode) {
+                navigateToNextBookmarked();
             } else {
-                // 기존 다음 버튼 로직
-                if (currentKanjiIndex < allKanjiData.length - 1) {
-                    currentKanjiIndex++;
-                    updateKanjiDisplay();
+                const skipKnown = document.getElementById('skipKnownCheck').checked;
+                
+                if (skipKnown) {
+                    navigateToNextUnknown();
+                } else {
+                    // 기존 다음 버튼 로직
+                    if (currentKanjiIndex < allKanjiData.length - 1) {
+                        currentKanjiIndex++;
+                        updateKanjiDisplay();
+                    }
                 }
             }
         }
         
+        // 다음 북마크된 한자로 이동
+        function navigateToNextBookmarked() {
+            if (bookmarkedKanjiList.length === 0) return;
+            
+            const currentKanji = allKanjiData[currentKanjiIndex].kanji;
+            const currentIdxInBookmarks = bookmarkedKanjiList.indexOf(currentKanji);
+            const skipKnown = document.getElementById('skipKnownCheck').checked;
+            
+            if (currentIdxInBookmarks < bookmarkedKanjiList.length - 1) {
+                let nextIdx = currentIdxInBookmarks + 1;
+                
+                // 알고 있는 한자 건너뛰기가 활성화된 경우
+                if (skipKnown) {
+                    // 다음 모르는 북마크 한자 찾기
+                    while (nextIdx < bookmarkedKanjiList.length) {
+                        const nextKanji = bookmarkedKanjiList[nextIdx];
+                        if (!knownKanji[nextKanji]) {
+                            break; // 모르는 한자를 찾았을 때 중단
+                        }
+                        nextIdx++;
+                    }
+                    
+                    // 모르는 한자가 없는 경우
+                    if (nextIdx >= bookmarkedKanjiList.length) {
+                        alert('뒤에 더 이상 모르는 북마크 한자가 없습니다!');
+                        return;
+                    }
+                }
+                
+                // 다음 북마크된 한자 찾기
+                const nextBookmarkedKanji = bookmarkedKanjiList[nextIdx];
+                // 해당 한자의 인덱스 찾기
+                const nextIndex = allKanjiData.findIndex(k => k.kanji === nextBookmarkedKanji);
+                
+                if (nextIndex !== -1) {
+                    currentKanjiIndex = nextIndex;
+                    updateKanjiDisplay(true);
+                }
+            }
+        }
+
         // 다음 모르는 한자로 이동
         function navigateToNextUnknown() {
             let nextIndex = currentKanjiIndex + 1;
